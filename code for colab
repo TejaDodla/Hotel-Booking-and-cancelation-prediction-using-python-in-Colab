@@ -1,0 +1,241 @@
+Execute each and every code how i placed here . each and every code where seperated so execute one by one in colab after uploading the csv file which i have provide .
+---------------------------------------------------------------------------------------------------------------------
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore")
+---------------------------------------------------------------------------------------------------------------------
+data = pd.read_csv("hotel_bookings.csv")
+---------------------------------------------------------------------------------------------------------------------
+data.shape
+---------------------------------------------------------------------------------------------------------------------
+data.sample(5)
+---------------------------------------------------------------------------------------------------------------------
+
+data.dtypes
+---------------------------------------------------------------------------------------------------------------------
+
+data.isnull().sum()
+---------------------------------------------------------------------------------------------------------------------
+
+data.columns
+---------------------------------------------------------------------------------------------------------------------
+
+data.columns
+---------------------------------------------------------------------------------------------------------------------
+
+data["reservation_status_date"] = pd.to_datetime(data["reservation_status_date"],format='mixed')
+---------------------------------------------------------------------------------------------------------------------
+
+data.info()
+---------------------------------------------------------------------------------------------------------------------
+
+data.describe(include="object")
+---------------------------------------------------------------------------------------------------------------------
+
+for col in data.describe(include="object").columns:
+ print(col)
+ print(data[col].unique())
+ print("----------------------------------------")
+---------------------------------------------------------------------------------------------------------------------
+
+data.drop(["company","agent"],axis = 1,inplace = True)
+---------------------------------------------------------------------------------------------------------------------
+
+data.shape
+---------------------------------------------------------------------------------------------------------------------
+
+data.isnull().sum()
+---------------------------------------------------------------------------------------------------------------------
+
+data.dropna(inplace = True)
+---------------------------------------------------------------------------------------------------------------------
+
+data.isnull().sum()
+---------------------------------------------------------------------------------------------------------------------
+
+data.shape
+---------------------------------------------------------------------------------------------------------------------
+
+data.drop(data[data["adults"]==0].index,inplace = True)
+data.drop(data[data["children"]==0].index,inplace = True)
+data.drop(data[data["babies"]==0].index,inplace = True)
+---------------------------------------------------------------------------------------------------------------------
+
+data.drop(data[(data['adults'] == 0) & (data['children'] == 0) & (data['babies'] == 0)].index, inplace = True)
+---------------------------------------------------------------------------------------------------------------------
+
+data.shape
+
+---------------------------------------------------------------------------------------------------------------------
+
+cancelled_data = data[data["is_canceled"] == 1]
+cancelled_data_city = cancelled_data[cancelled_data["hotel"] == "City Hotel"]
+cancelled_data_resort = cancelled_data[cancelled_data["hotel"] == "Resort Hotel"]
+
+city_hotel_cancellations = cancelled_data_city.shape[0]
+resort_hotel_cancellations = cancelled_data_resort.shape[0]
+
+print(f"City Hotel Cancellations: {city_hotel_cancellations}")
+print(f"Resort Hotel Cancellations: {resort_hotel_cancellations}")
+
+--------------------------------------------------------------------------------------------------------------------------
+
+plt.figure(figsize=(10, 6))
+sns.countplot(x='hotel', data=data, hue='is_canceled')
+plt.title('Hotel-wise Booking Cancellations')
+plt.xlabel('Hotel Type')
+plt.ylabel('Number of Bookings')
+plt.xticks(ticks=[0, 1], labels=['Resort Hotel', 'City Hotel'])
+plt.show()
+---------------------------------------------------------------------------------------------------------------------
+
+resort_hotel = data[(data["hotel"]=="Resort Hotel") & (data["is_canceled"]==0)]
+city_hotel = data[(data["hotel"]=="City Hotel") & (data["is_canceled"]==0)]
+---------------------------------------------------------------------------------------------------------------------
+
+resort_hotel_adr = resort_hotel.groupby("arrival_date_month")["adr"].mean()
+city_hotel_adr = city_hotel.groupby("arrival_date_month")["adr"].mean()
+---------------------------------------------------------------------------------------------------------------------
+
+resort_hotel_adr = resort_hotel_adr.reindex(index = ["January","February","March","April","May","June","July","August","September","October","November","December"])
+city_hotel_adr = city_hotel_adr.reindex(index = ["January","February","March","April","May","June","July","August","September","October","November","December"])
+---------------------------------------------------------------------------------------------------------------------
+
+plt.figure(figsize = (20,6))
+plt.title("Average Daily Rate",fontsize = 30)
+plt.plot(resort_hotel_adr.index,resort_hotel_adr.values)
+plt.plot(city_hotel_adr.index,city_hotel_adr.values)
+plt.show()
+---------------------------------------------------------------------------------------------------------------------
+
+data["adr"] = data["adr"].fillna(data["adr"].mean())
+---------------------------------------------------------------------------------------------------------------------
+
+plt.figure(figsize=(12, 6))
+sns.lineplot(x='arrival_date_month', y='adr', hue='hotel', data=data)
+plt.title('ADR by Hotel and Month')
+plt.xlabel('Arrival Month')
+plt.ylabel('Average Daily Rate (ADR)')
+plt.xticks(rotation=45)
+plt.grid(True)
+plt.show()
+---------------------------------------------------------------------------------------------------------------------
+
+country_data = data[data["is_canceled"]==1]
+country_wise_cancellation = country_data["country"].value_counts()[:10]
+---------------------------------------------------------------------------------------------------------------------
+
+country_wise_cancellation.plot(kind="bar",figsize = (15,6))
+plt.xlabel("Country",fontsize = 15)
+plt.ylabel("Number of Cancellations",fontsize = 15)
+plt.title("Top 10 Countries with the Highest Cancellation Rates",fontsize = 20)
+plt.show()
+---------------------------------------------------------------------------------------------------------------------
+
+plt.figure(figsize=(12, 6))
+sns.countplot(data=data, x='customer_type', hue='is_canceled')
+plt.title('Cancellations by Customer Type')
+plt.xlabel('Customer Type')
+plt.ylabel('Count')
+plt.legend(title='Cancellation Status', labels=['Not Canceled', 'Canceled'])
+plt.show()
+---------------------------------------------------------------------------------------------------------------------
+
+data.corr(numeric_only=True)
+---------------------------------------------------------------------------------------------------------------------
+
+plt.figure(figsize = (20,20))
+sns.heatmap(data.corr(numeric_only=True),annot = True,cmap = "RdPu")
+plt.show()
+
+--------------------------------------------------------------------------------------------------------------------
+data = pd.read_csv("hotel_bookings.csv")
+
+data.drop(["company", "agent"], axis=1, inplace=True)
+
+data.dropna(inplace=True)
+
+data.drop(data[(data['adults'] == 0) & (data['children'] == 0) & (data['babies'] == 0)].index, inplace=True)
+
+data["adr"] = data["adr"].fillna(data["adr"].mean())
+
+data["reservation_status_date"] = pd.to_datetime(data["reservation_status_date"], format='mixed')
+
+data.drop(["reservation_status_date", "reservation_status"], axis=1, inplace=True)
+
+data = pd.get_dummies(data,columns = ["hotel", "arrival_date_month", "meal", "country", "market_segment", "distribution_channel", "reserved_room_type", "assigned_room_type", "deposit_type", "customer_type"], drop_first=True)
+
+from sklearn.model_selection import train_test_split
+
+X = data.drop("is_canceled", axis=1)
+y = data["is_canceled"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+print("Data successfully reloaded and preprocessed. Data split into training and testing sets.")
+--------------------------------------------------------------------------------------------------------------------------------
+
+from sklearn.linear_model import LogisticRegression
+---------------------------------------------------------------------------------------------------------------------
+
+model = LogisticRegression()
+model.fit(X_train, y_train)
+---------------------------------------------------------------------------------------------------------------------
+
+y_pred = model.predict(X_test)
+
+-------------------------------------------------------------------------------------------------------------------------------------
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+print("Accuracy Score :", accuracy_score(y_test, y_pred))
+print("Precision Score :", precision_score(y_test, y_pred))
+print("Recall Score :", recall_score(y_test, y_pred))
+print("F1 Score :", f1_score(y_test, y_pred))
+----------------------------------------------------------------------------------------------------------------------------------------
+from sklearn.metrics import confusion_matrix
+confusion_matrix(y_test, y_pred)
+---------------------------------------------------------------------------------------------------------------------
+
+sns.heatmap(confusion_matrix(y_test, y_pred), annot=True, fmt='d', cmap='Blues')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+---------------------------------------------------------------------------------------------------------------------
+
+from sklearn.metrics import classification_report
+print(classification_report(y_test, y_pred))
+---------------------------------------------------------------------------------------------------------------------
+
+from sklearn.ensemble import RandomForestClassifier
+---------------------------------------------------------------------------------------------------------------------
+
+rf_model = RandomForestClassifier()
+rf_model.fit(X_train, y_train)
+---------------------------------------------------------------------------------------------------------------------
+
+rf_y_pred = rf_model.predict(X_test)
+---------------------------------------------------------------------------------------------------------------------
+
+print("Accuracy Score :", accuracy_score(y_test, rf_y_pred))
+print("Precision Score :", precision_score(y_test, rf_y_pred))
+print("Recall Score :", recall_score(y_test, rf_y_pred))
+print("F1 Score :", f1_score(y_test, rf_y_pred))
+---------------------------------------------------------------------------------------------------------------------
+
+confusion_matrix(y_test, rf_y_pred)
+---------------------------------------------------------------------------------------------------------------------
+
+sns.heatmap(confusion_matrix(y_test, rf_y_pred), annot=True, fmt='d', cmap='Blues')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+---------------------------------------------------------------------------------------------------------------------
+
+print(classification_report(y_test, rf_y_pred))
+---------------------------------------------------------------------------------------------------------------------
+
+plt.figure(figsize=(15, 8))
+pd.Series(rf_model.feature_importances_, index=X.columns).nlargest(15).plot(kind='barh')
+plt.show()
